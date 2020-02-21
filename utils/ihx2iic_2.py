@@ -1,44 +1,43 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 #
 # Copyright 2009, Ubixum, Inc
 #
 # This file copied and modified for fx2lib from the GnuRadio project
 #
 # Copyright 2004,2006 Free Software Foundation, Inc.
-#
+# 
 # This file is part of GNU Radio
-#
+# 
 # GNU Radio is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3, or (at your option)
 # any later version.
-#
+# 
 # GNU Radio is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#
+# 
 # You should have received a copy of the GNU General Public License
 # along with GNU Radio; see the file COPYING.  If not, write to
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
-#
+# 
 
 import re
 import sys, struct
 import os, os.path
 from optparse import OptionParser
-from functools import reduce
 
 
 def hex_to_bytes (s):
     if len (s) & 0x1:
-        raise ValueError("Length must be even")
+        raise ValueError, "Length must be even"
     r = []
     for i in range (0, len(s), 2):
         r.append (int (s[i:i+2], 16))
     return r
-
+    
 def msb (x):
     return (x >> 8) & 0xff
 
@@ -59,17 +58,17 @@ class ihx_file (object):
         for line in file:
             line = line.strip().upper ()
             if not self.pat.match (line):
-                raise ValueError("Invalid hex record format")
+                raise ValueError, "Invalid hex record format"
             bytes = hex_to_bytes (line[1:])
             sum = reduce (lambda x, y: x + y, bytes, 0) % 256
             if sum != 0:
-                raise ValueError("Bad hex checksum")
+                raise ValueError, "Bad hex checksum"
             lenx = bytes[0]
             addr = (bytes[1] << 8) + bytes[2]
             type = bytes[3]
             data = bytes[4:-1]
             if lenx != len (data):
-                raise ValueError("Invalid hex record (bad length)")
+                raise ValueError, "Invalid hex record (bad length)"
             if type != 0:
                 break;
             r.append (ihx_rec (addr, type, data))
@@ -110,21 +109,21 @@ def build_eeprom_image (filename, outfile,vid,pid,devid,cb):
         while c<l:
             image_map[addr] = r.data[c]
             addr += 1
-            c += 1
-    # now create new records based on contiguous image data
+            c += 1 
+    # now create new records based on contiguous image data 
     max_addr = max(image_map.keys())
     records = []
     start_addr = 0
 
     while start_addr <= max_addr:
-        if start_addr not in image_map:
+        if not image_map.has_key(start_addr):
             start_addr += 1
             continue
         end_addr = start_addr
         # add continguous data up to 10 bits long (0x3ff)
         # is max size, trm 3.4.3
         size=0
-        while end_addr in image_map and size < 0x3ff:
+        while image_map.has_key(end_addr) and size < 0x3ff:
             end_addr += 1
             size += 1
 
@@ -135,7 +134,7 @@ def build_eeprom_image (filename, outfile,vid,pid,devid,cb):
         records.append ( ihx_rec ( start_addr, 0, data ) )
         start_addr = end_addr
 
-
+    
     # 4 byte header that indicates where to load
     # the immediately follow code bytes.
 
@@ -159,8 +158,8 @@ def build_eeprom_image (filename, outfile,vid,pid,devid,cb):
         ] )
 
     buf=struct.pack ( "B"*len(image), *image )
-    print("iic Image Size" , len(buf))
-    out=open( outfile, 'wb')
+    print "iic Image Size" , len(buf)
+    out=open( outfile, 'w') 
     out.write(buf)
     out.close();
 
@@ -183,4 +182,5 @@ if __name__ == '__main__':
     ihx_filename = args[0]
     iic_filename = args[1]
     build_eeprom_image ( ihx_filename, iic_filename, options.vid, options.pid, options.devid, options.configbyte )
+
 
